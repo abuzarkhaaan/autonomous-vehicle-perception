@@ -1,0 +1,68 @@
+inherit: configs/bevformer_base.yaml
+
+data:
+  dataset: nuscenes
+  version: v1.0-trainval
+  root: data/nuscenes
+  num_cameras: 6
+  classes:
+    - car
+    - truck
+    - bus
+    - trailer
+    - construction_vehicle
+    - pedestrian
+    - motorcycle
+    - bicycle
+    - traffic_cone
+    - barrier
+  train_split: train
+  val_split: val
+
+geometry:
+  bev:
+    height: 200
+    width: 200
+    resolution: 0.512
+  voxel:
+    x: [-51.2, 51.2]
+    y: [-51.2, 51.2]
+    z: [-5.0, 3.0]
+
+model:
+  backbone:
+    name: resnet50
+    pretrained: true
+    out_channels: 1024
+  bevformer:
+    embed_dim: 256
+    num_queries: 900
+    num_feature_levels: 4
+    num_cams: 6
+    num_points: 4
+    num_ref_points: 4
+    num_decoder_layers: 6
+    num_encoder_layers: 6
+    temporal_attention: true
+  head:
+    num_classes: 10
+    with_velocity: true
+
+training:
+  epochs: 24
+  batch_size: 2
+  optimizer:
+    name: adamw
+    lr: 0.0002
+    weight_decay: 0.01
+  scheduler:
+    name: cosine
+    warmup_epochs: 1
+    min_lr: 0.000001
+
+evaluation:
+  metrics:
+    - nuscenes_map
+    - nuscenes_nds
+  save_predictions: true
+  output_dir: outputs/predictions

@@ -1,0 +1,111 @@
+project:
+  name: autonomous-vehicle-perception
+  task: multi-camera-3d-detection
+  model: bevformer
+  seed: 42
+
+runtime:
+  device: cuda
+  precision: fp16
+  num_workers: 4
+  pin_memory: true
+
+data:
+  dataset: nuscenes
+  root: data/nuscenes
+  version: v1.0-trainval
+  train_split: train
+  val_split: val
+  num_cameras: 6
+  camera_names:
+    - CAM_FRONT
+    - CAM_FRONT_RIGHT
+    - CAM_FRONT_LEFT
+    - CAM_BACK
+    - CAM_BACK_LEFT
+    - CAM_BACK_RIGHT
+  image:
+    height: 900
+    width: 1600
+    resize:
+      height: 450
+      width: 800
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+  temporal:
+    enabled: true
+    num_history_frames: 3
+    queue_length: 4
+
+geometry:
+  voxel:
+    x: [-51.2, 51.2]
+    y: [-51.2, 51.2]
+    z: [-5.0, 3.0]
+  bev:
+    height: 200
+    width: 200
+    resolution: 0.512
+  lidar_to_ego: true
+
+model:
+  backbone:
+    name: resnet50
+    pretrained: true
+    out_channels: 1024
+  neck:
+    name: fpn
+    out_channels: 256
+    num_outs: 4
+  bevformer:
+    embed_dim: 256
+    num_queries: 900
+    num_feature_levels: 4
+    num_cams: 6
+    num_points: 4
+    num_ref_points: 4
+    num_decoder_layers: 6
+    num_encoder_layers: 6
+    dropout: 0.1
+    temporal_attention: true
+    positional_encoding: sine
+  head:
+    name: center_head
+    num_classes: 10
+    with_velocity: true
+    box_code_size: 9
+
+training:
+  epochs: 24
+  batch_size: 2
+  grad_accum_steps: 1
+  grad_clip_norm: 35.0
+  optimizer:
+    name: adamw
+    lr: 0.0002
+    weight_decay: 0.01
+    betas: [0.9, 0.999]
+  scheduler:
+    name: cosine
+    warmup_epochs: 1
+    min_lr: 0.000001
+  loss:
+    cls_weight: 2.0
+    bbox_weight: 0.25
+    iou_weight: 1.0
+  checkpoint:
+    save_dir: checkpoints
+    save_every: 1
+    keep_last: 5
+
+evaluation:
+  interval: 1
+  metrics:
+    - nuscenes_map
+    - nuscenes_nds
+
+logging:
+  log_dir: outputs/logs
+  log_every: 50
+  use_wandb: false

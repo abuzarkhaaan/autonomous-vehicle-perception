@@ -1,0 +1,41 @@
+project:
+  name: autonomous-vehicle-perception
+  module: sensor_fusion
+
+fusion:
+  enabled: true
+  mode: camera_only
+  inputs:
+    camera: true
+    lidar: false
+    radar: false
+  calibration:
+    use_extrinsics: true
+    use_intrinsics: true
+    time_sync:
+      enabled: true
+      max_time_diff_ms: 30
+  feature_fusion:
+    type: late
+    camera:
+      method: bev_attention
+      bevformer_integration: true
+    lidar:
+      method: pillar_features
+      bev_grid_align: true
+    radar:
+      method: point_features
+  temporal_fusion:
+    enabled: true
+    method: attention
+    history_frames: 3
+
+outputs:
+  save_bev: true
+  save_fused_features: false
+  output_dir: outputs/fusion
+
+validation:
+  sanity_checks:
+    reprojection_error_px_max: 5.0
+    missing_sensor_policy: drop_frame
